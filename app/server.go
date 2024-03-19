@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	// Uncomment this block to pass the first stage
 	"net"
 	"os"
@@ -24,20 +26,36 @@ func main() {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
-	if err != nil {
-		fmt.Println("Error reading: ", err.Error())
-		os.Exit(1)
-	}
 
-	buf := make([]byte, 1024)
-	_, err = conn.Read(buf)
-	if err != nil {
-		fmt.Println("Error reading: ", err.Error())
-		os.Exit(1)
-	}
-
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	buf := getReq(conn)
+	path := getPath(string(buf))
+	sendRes(conn, path)
 
 	defer conn.Close()
 	defer l.Close()
+}
+
+func getReq(conn net.Conn) []byte {
+	buf := make([]byte, 1024)
+	_, err := conn.Read(buf)
+	if err != nil {
+		fmt.Println("Error reading: ", err.Error())
+		os.Exit(1)
+	}
+	return buf
+}
+
+func getPath(req string) string {
+	reqHead := strings.Split(req, "\r\n")[0]
+	return strings.Fields(reqHead)[1]
+}
+
+func sendRes(conn net.Conn, path string) {
+	res := "HTTP/1.1 200 OK\r\n\r\n"
+
+	if path != "/" {
+		res = "HTTP/1.1 404 Not Found\r\n\r\n"
+	}
+
+	conn.Write([]byte(res))
 }
