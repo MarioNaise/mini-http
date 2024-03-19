@@ -29,7 +29,8 @@ func main() {
 
 	buf := getReq(conn)
 	path := getPath(string(buf))
-	sendRes(conn, path)
+	res := getRes(path)
+	conn.Write([]byte(res))
 
 	defer conn.Close()
 	defer l.Close()
@@ -50,12 +51,14 @@ func getPath(req string) string {
 	return strings.Fields(reqHead)[1]
 }
 
-func sendRes(conn net.Conn, path string) {
-	res := "HTTP/1.1 200 OK\r\n\r\n"
-
-	if path != "/" {
-		res = "HTTP/1.1 404 Not Found\r\n\r\n"
+func getRes(path string) string {
+	res := "HTTP/1.1 404 Not Found\r\n\r\n"
+	if path == "/" {
+		res = "HTTP/1.1 200 OK\r\n\r\n"
 	}
-
-	conn.Write([]byte(res))
+	if strings.HasPrefix(path, "/echo") {
+		echo := strings.TrimPrefix(path, "/echo/")
+		res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(echo), echo)
+	}
+	return res
 }
