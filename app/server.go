@@ -24,18 +24,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+	defer l.Close()
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+		go handleRequest(conn)
 	}
+}
 
+func handleRequest(conn net.Conn) {
+	defer conn.Close()
 	req := getReq(conn)
 	res := getRes(req)
 	conn.Write([]byte(res))
-
-	defer conn.Close()
-	defer l.Close()
 }
 
 func getReq(conn net.Conn) request {
@@ -67,17 +71,20 @@ func getRes(req request) string {
 	path := pathRegex.FindString(req.path)
 	resNotFound := "HTTP/1.1 404 Not Found\r\n\r\n"
 	resOk := "HTTP/1.1 200 OK\r\n\r\n"
-	resText := "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
 	if req.path == "/" {
 		return resOk
 	}
 	if path == "echo" {
 		echo := strings.TrimPrefix(req.path, "/echo/")
-		return fmt.Sprintf("%sContent-Length: %d\r\n\r\n%s\r\n", resText, len(echo), echo)
+		return getFormattedRes(strings.TrimSuffix(echo, "/"))
 	}
 	header, ok := req.headers[strings.ToLower(path)]
 	if ok {
-		return fmt.Sprintf("%sContent-Length: %d\r\n\r\n%s\r\n", resText, len(header), header)
+		return getFormattedRes(header)
 	}
 	return resNotFound
+}
+
+func getFormattedRes(str string) string {
+	return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(str), str)
 }
