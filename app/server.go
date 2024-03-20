@@ -2,18 +2,21 @@ package main
 
 import (
 	"fmt"
-	"strings"
-
-	// Uncomment this block to pass the first stage
 	"net"
 	"os"
+	"regexp"
+	"strings"
 )
 
-func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
+type request struct {
+	method  string
+	path    string
+	headers map[string]string
+	body    string
+}
 
-	// Uncomment this block to pass the first stage
+func main() {
+	fmt.Println("Logs from your program will appear here!")
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -27,38 +30,54 @@ func main() {
 		os.Exit(1)
 	}
 
-	buf := getReq(conn)
-	path := getPath(string(buf))
-	res := getRes(path)
+	req := getReq(conn)
+	res := getRes(req)
 	conn.Write([]byte(res))
 
 	defer conn.Close()
 	defer l.Close()
 }
 
-func getReq(conn net.Conn) []byte {
+func getReq(conn net.Conn) request {
 	buf := make([]byte, 1024)
 	_, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println("Error reading: ", err.Error())
 		os.Exit(1)
 	}
-	return buf
+	req := string(buf)
+	reqSlice := strings.Split(req, "\r\n\r\n")
+	head, body := reqSlice[0], reqSlice[1]
+	headerSlice := strings.Split(head, "\r\n")[1:]
+	headers := map[string]string{}
+	for _, header := range headerSlice {
+		headerSplit := strings.Split(header, ": ")
+		headers[strings.ToLower(headerSplit[0])] = headerSplit[1]
+	}
+	return request{
+		method:  strings.Fields(head)[0],
+		path:    strings.Fields(head)[1],
+		headers: headers,
+		body:    body,
+	}
 }
 
-func getPath(req string) string {
-	reqHead := strings.Split(req, "\r\n")[0]
-	return strings.Fields(reqHead)[1]
-}
-
-func getRes(path string) string {
-	res := "HTTP/1.1 404 Not Found\r\n\r\n"
-	if path == "/" {
-		res = "HTTP/1.1 200 OK\r\n\r\n"
+func getRes(req request) string {
+	pathRegex := regexp.MustCompile("[A-z|-]+")
+	path := pathRegex.FindString(req.path)
+	resNotFound := "HTTP/1.1 404 Not Found\r\n\r\n"
+	resOk := "HTTP/1.1 200 OK\r\n\r\n"
+	resText := "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+	if req.path == "/" {
+		return resOk
 	}
-	if strings.HasPrefix(path, "/echo") {
-		echo := strings.TrimPrefix(path, "/echo/")
-		res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(echo), echo)
+	if path == "echo" {
+		echo := strings.TrimPrefix(req.path, "/echo/")
+		return fmt.Sprintf("%sContent-Length: %d\r\n\r\n%s\r\n", resText, len(echo), echo)
 	}
-	return res
+	header, ok := req.headers[strings.ToLower(path)]
+	if ok {
+		return fmt.Sprintf("%sContent-Length: %d\r\n\r\n%s\r\n", resText, len(header), header)
+	}
+	return resNotFound
 }
