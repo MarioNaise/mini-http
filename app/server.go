@@ -66,6 +66,7 @@ func getReq(conn net.Conn) request {
 		headerSplit := strings.Split(header, ": ")
 		headers[strings.ToLower(headerSplit[0])] = headerSplit[1]
 	}
+
 	return request{
 		method:  strings.Fields(head)[0],
 		path:    strings.Fields(head)[1],
@@ -93,7 +94,7 @@ func getRes(req request, fileDir *string) string {
 	}
 
 	if path == "files" {
-		return getFileRes(req.path, fileDir)
+		return getFileRes(req, fileDir)
 	}
 
 	return resNotFound
@@ -103,11 +104,31 @@ func getTextRes(str string) string {
 	return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(str), str)
 }
 
-func getFileRes(fileName string, fileDir *string) string {
-	fileName = strings.TrimPrefix(fileName, "/files/")
-	file, err := os.ReadFile(*fileDir + fileName)
-	if err != nil {
-		return "HTTP/1.1 404 Not Found\r\n\r\n"
+func getFileRes(req request, fileDir *string) string {
+	fileName := strings.TrimPrefix(req.path, "/files/")
+	if req.method == "GET" {
+		file, err := os.ReadFile(*fileDir + fileName)
+		if err != nil {
+			fmt.Println("Error reading file:", err.Error())
+			return "HTTP/1.1 404 Not Found\r\n\r\n"
+		}
+		return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s\r\n", len(string(file)), string(file))
 	}
-	return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s\r\n", len(string(file)), string(file))
+	if req.method == "POST" {
+		content := []byte(req.body)
+		for i := 0; i < len(content); i++ {
+			if content[i] == 0 {
+				content = content[:i]
+			}
+		}
+		err := os.WriteFile(*fileDir+fileName, content, 0644)
+		if err != nil {
+			fmt.Println("Error writing file:", err.Error())
+			return "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+		}
+
+		return "HTTP/1.1 201 Created\r\n\r\n"
+
+	}
+	return "HTTP/1.1 405 Not Allowed\r\n\r\n"
 }
