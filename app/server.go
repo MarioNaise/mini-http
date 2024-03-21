@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -18,6 +19,13 @@ type request struct {
 func main() {
 	fmt.Println("Logs from your program will appear here!")
 
+	var fileDir string
+	flag.StringVar(&fileDir, "directory", "", "directory containing files")
+	flag.Parse()
+	if fileDir != "" {
+		fileDir += "/"
+	}
+
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
@@ -31,14 +39,14 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		go handleRequest(conn)
+		go handleRequest(conn, &fileDir)
 	}
 }
 
-func handleRequest(conn net.Conn) {
+func handleRequest(conn net.Conn, fileDir *string) {
 	defer conn.Close()
 	req := getReq(conn)
-	res := getRes(req)
+	res := getRes(req, fileDir)
 	conn.Write([]byte(res))
 }
 
@@ -66,25 +74,40 @@ func getReq(conn net.Conn) request {
 	}
 }
 
-func getRes(req request) string {
-	pathRegex := regexp.MustCompile("[A-z|-]+")
+func getRes(req request, fileDir *string) string {
+	pathRegex := regexp.MustCompile("[A-z-]+")
 	path := pathRegex.FindString(req.path)
 	resNotFound := "HTTP/1.1 404 Not Found\r\n\r\n"
 	resOk := "HTTP/1.1 200 OK\r\n\r\n"
+
 	if req.path == "/" {
 		return resOk
 	}
 	if path == "echo" {
 		echo := strings.TrimPrefix(req.path, "/echo/")
-		return getFormattedRes(strings.TrimSuffix(echo, "/"))
+		return getTextRes(strings.TrimSuffix(echo, "/"))
 	}
 	header, ok := req.headers[strings.ToLower(path)]
 	if ok {
-		return getFormattedRes(header)
+		return getTextRes(header)
 	}
+
+	if path == "files" {
+		return getFileRes(req.path, fileDir)
+	}
+
 	return resNotFound
 }
 
-func getFormattedRes(str string) string {
+func getTextRes(str string) string {
 	return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s\r\n", len(str), str)
+}
+
+func getFileRes(fileName string, fileDir *string) string {
+	fileName = strings.TrimPrefix(fileName, "/files/")
+	file, err := os.ReadFile(*fileDir + fileName)
+	if err != nil {
+		return "HTTP/1.1 404 Not Found\r\n\r\n"
+	}
+	return fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s\r\n", len(string(file)), string(file))
 }
