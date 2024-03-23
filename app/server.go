@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/codecrafters-io/http-server-starter-go/http"
 )
 
 var (
@@ -31,21 +33,20 @@ func main() {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
+			return
 		}
-		go handleRequest(conn)
+		go handleConnection(conn)
 	}
 }
 
-func handleRequest(conn net.Conn) {
+func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	buf := make([]byte, 1024)
+	var buf http.Buffer = make([]byte, 1024)
 	_, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println("Error reading: ", err.Error())
-		os.Exit(1)
+		return
 	}
-	req := parseRequest(string(buf))
-	res := getResponse(req)
+	res := handleRequest(buf.ToRequest())
 	conn.Write([]byte(res))
 }
