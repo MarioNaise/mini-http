@@ -19,4 +19,9 @@ type (
 		Headers Headers
 		Body    string
 	}
+
+	Server struct {
+		Host string
+		Port uint16
+	}
 )

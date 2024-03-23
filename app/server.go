@@ -3,50 +3,85 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/codecrafters-io/http-server-starter-go/http"
 )
 
 var (
 	DIRNAME string
-	PORT    int
+	PORT    uint
 )
 
 func init() {
 	flag.StringVar(&DIRNAME, "directory", "", "")
-	flag.IntVar(&PORT, "port", 4221, "")
+	flag.UintVar(&PORT, "port", 4221, "")
 	flag.Parse()
 }
 
 func main() {
-	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", PORT))
-	if err != nil {
-		fmt.Printf("Failed to bind to port %d\n", PORT)
-		os.Exit(1)
-	}
-	fmt.Printf("Server listening on %d\n", PORT)
-
-	defer l.Close()
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
-			return
-		}
-		go handleConnection(conn)
-	}
+	http.NewServer().Listen(handleRequest, uint16(PORT))
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	var buf http.Buffer = make([]byte, 1024)
-	_, err := conn.Read(buf)
-	if err != nil {
-		fmt.Println("Error reading: ", err.Error())
-		return
+func handleRequest(req *http.Request) http.Response {
+	pathRegex := regexp.MustCompile("[A-z-]+")
+	path := pathRegex.FindString(req.Path)
+
+	if req.Path == "/" {
+		return http.NewResponse(http.Ok)
 	}
-	res := handleRequest(buf.ToRequest())
-	conn.Write([]byte(res))
+
+	if path == "echo" {
+		echo := strings.TrimPrefix(req.Path, "/echo/")
+		return http.NewBodyResponse(strings.TrimSuffix(echo, "/"))
+	}
+
+	headerVal, ok := req.Headers[strings.ToLower(path)]
+	if ok {
+		return http.NewBodyResponse(headerVal)
+	}
+
+	if path == "files" {
+		return fileRouteHandler(req)
+	}
+
+	return http.NewResponse(http.NotFound)
+}
+
+func fileRouteHandler(req *http.Request) http.Response {
+	reqFileName := strings.TrimPrefix(req.Path, "/files/")
+	if DIRNAME != "" {
+		DIRNAME += "/"
+	}
+
+	if req.Method == "GET" {
+		file, err := os.ReadFile(DIRNAME + reqFileName)
+		if err != nil {
+			fmt.Println("Error reading file:", err.Error())
+			return http.NewResponse(http.NotFound)
+		}
+		res := http.NewBodyResponse(string(file))
+		res.Headers.Set("Content-Type", "application/octet-stream")
+		return res
+	}
+
+	if req.Method == "POST" {
+		content := []byte(req.Body)
+		for i := range content {
+			if content[i] == 0 {
+				content = content[:i]
+				break
+			}
+		}
+		err := os.WriteFile(DIRNAME+reqFileName, content, 0644)
+		if err != nil {
+			fmt.Println("Error writing file:", err.Error())
+			return http.NewResponse(http.Error)
+		}
+		return http.NewResponse(http.Created)
+	}
+
+	return http.NewResponse(http.NotFound)
 }
