@@ -20,8 +20,15 @@ type (
 		Body    string
 	}
 
-	Server struct {
-		Host string
-		Port uint16
+	callback func(req *Request) Response
+	handler  struct {
+		callback callback
+		path     string
+	}
+	routeMap map[string][]handler
+	Server   struct {
+		routes routeMap
+		Host   string
+		Port   uint16
 	}
 )

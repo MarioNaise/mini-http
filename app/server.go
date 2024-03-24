@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/codecrafters-io/http-server-starter-go/http"
@@ -22,36 +21,33 @@ func init() {
 }
 
 func main() {
-	http.NewServer().Listen(handleRequest, uint16(PORT))
-}
-
-func handleRequest(req *http.Request) http.Response {
-	pathRegex := regexp.MustCompile("[A-z-]+")
-	path := pathRegex.FindString(req.Path)
-
-	if req.Path == "/" {
-		return http.NewResponse(http.Ok)
-	}
-
-	if path == "echo" {
+	server := http.NewServer()
+	server.Handle("/", handleRoute)
+	server.Handle("/files", handleFiles)
+	server.Get("/echo", func(req *http.Request) http.Response {
 		echo := strings.TrimPrefix(req.Path, "/echo/")
 		return http.NewBodyResponse(strings.TrimSuffix(echo, "/"))
-	}
+	})
 
-	if path == "files" {
-		return fileRouteHandler(req)
-	}
-
-	for k, v := range req.Headers {
-		if strings.ToLower(k) == path {
-			return http.NewBodyResponse(v)
-		}
-	}
-
-	return http.NewResponse(http.NotFound)
+	server.Listen(func() {
+		fmt.Println("Server listening on port", uint16(PORT))
+	}, uint16(PORT))
 }
 
-func fileRouteHandler(req *http.Request) http.Response {
+func handleRoute(req *http.Request) http.Response {
+	res := http.NewResponse(http.NotFound)
+	if req.Path == "/" {
+		res = http.NewResponse(http.Ok)
+	}
+	for k, v := range req.Headers {
+		if strings.ToLower(k) == strings.TrimPrefix(req.Path, "/") {
+			res = http.NewBodyResponse(v)
+		}
+	}
+	return res
+}
+
+func handleFiles(req *http.Request) http.Response {
 	reqFileName := strings.TrimPrefix(req.Path, "/files/")
 	if DIRNAME != "" {
 		DIRNAME += "/"
