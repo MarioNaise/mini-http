@@ -23,5 +23,5 @@ func (headers Headers) ToString() string {
 	for k, v := range headers {
 		s += fmt.Sprintf("%s%s: %s", CRLF, k, v)
 	}
-	return s
+	return s + CRLF + CRLF
 }

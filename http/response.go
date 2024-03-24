@@ -25,13 +25,9 @@ func (res *Response) SetBody(body string) {
 		if res.Headers.Get("Content-Type") == "" {
 			res.Headers.Set("Content-Type", "text/plain")
 		}
-	} else {
-		res.Headers = Headers{}
 	}
 }
 
 func (res Response) ToString() string {
-	response := fmt.Sprintf("%s %s", Prefix, res.Status)
-	response += res.Headers.ToString()
-	return response + CRLF + CRLF + res.Body
+	return fmt.Sprintf("%s %s", HTTP, string(res.Status)+res.Headers.ToString()+res.Body)
 }

@@ -10,7 +10,7 @@ func (req Buffer) ToRequest() Request {
 	headers := Headers{}
 	for _, header := range headerSlice {
 		headerSplit := strings.Split(header, ": ")
-		headers[strings.ToLower(headerSplit[0])] = headerSplit[1]
+		headers.Set(headerSplit[0], headerSplit[1])
 	}
 
 	return Request{

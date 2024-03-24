@@ -38,13 +38,14 @@ func handleRequest(req *http.Request) http.Response {
 		return http.NewBodyResponse(strings.TrimSuffix(echo, "/"))
 	}
 
-	headerVal, ok := req.Headers[strings.ToLower(path)]
-	if ok {
-		return http.NewBodyResponse(headerVal)
-	}
-
 	if path == "files" {
 		return fileRouteHandler(req)
+	}
+
+	for k, v := range req.Headers {
+		if strings.ToLower(k) == path {
+			return http.NewBodyResponse(v)
+		}
 	}
 
 	return http.NewResponse(http.NotFound)
