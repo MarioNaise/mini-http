@@ -22,5 +22,5 @@ func (req *Request) SetBody(body string) {
 }
 
 func (req Request) ToString() string {
-	return fmt.Sprintf("%s %s %s", req.Method, req.Path, HTTP+req.Headers.ToString()+req.Body)
+	return fmt.Sprintf("%s %s %s", req.Method, req.Path, HTTPVersion+req.Headers.ToString()+req.Body)
 }

@@ -38,7 +38,11 @@ func handleConnection(conn net.Conn, callback func(req *Request) Response) {
 		fmt.Println("Error reading from connection: ", err.Error())
 		return
 	}
-	req := buf.ToRequest()
+	req, err := buf.ToRequest()
+	if err != nil {
+		fmt.Println("Error parsing request: ", err.Error())
+		return
+	}
 	res := callback(&req)
 	conn.Write([]byte(res.ToString()))
 }

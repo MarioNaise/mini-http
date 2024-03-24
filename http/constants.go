@@ -1,8 +1,8 @@
 package http
 
 const (
-	CRLF string = "\r\n"
-	HTTP string = "HTTP/1.1"
+	CRLF        string = "\r\n"
+	HTTPVersion string = "HTTP/1.1"
 
 	Get  string = "GET"
 	Post string = "POST"

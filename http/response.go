@@ -29,5 +29,5 @@ func (res *Response) SetBody(body string) {
 }
 
 func (res Response) ToString() string {
-	return fmt.Sprintf("%s %s", HTTP, string(res.Status)+res.Headers.ToString()+res.Body)
+	return fmt.Sprintf("%s %s", HTTPVersion, string(res.Status)+res.Headers.ToString()+res.Body)
 }
