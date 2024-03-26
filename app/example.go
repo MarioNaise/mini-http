@@ -3,10 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"mini-http/http"
 	"os"
 	"strings"
-
-	"github.com/codecrafters-io/http-server-starter-go/http"
 )
 
 var (

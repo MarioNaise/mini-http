@@ -1,8 +1,6 @@
 package http
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func NewRequest() Request {
 	return Request{Method: Get, Path: "/", Headers: Headers{}, Body: ""}
@@ -21,6 +19,6 @@ func (req *Request) SetBody(body string) {
 	}
 }
 
-func (req Request) ToString() string {
-	return fmt.Sprintf("%s %s %s", req.Method, req.Path, HTTPVersion+req.Headers.ToString()+req.Body)
+func (req *Request) ToString() string {
+	return fmt.Sprintf("%s %s %s", req.Method, req.Path, Version+req.Headers.ToString()+req.Body)
 }

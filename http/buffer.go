@@ -32,7 +32,7 @@ func (buf Buffer) ToRequest() (Request, error) {
 	if !isValidPath(req.Path) {
 		return Request{}, errors.New("invalid path")
 	}
-	if strings.Fields(reqSlice[0])[2] != HTTPVersion {
+	if strings.Fields(reqSlice[0])[2] != Version {
 		return Request{}, errors.New("invalid http version")
 	}
 	return req, nil

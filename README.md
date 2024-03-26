@@ -1,38 +1,61 @@
-[![progress-banner](https://backend.codecrafters.io/progress/http-server/d09dc68d-d12a-4546-9b7d-44dcdd4f9e76)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# Mini-Http
 
-This is a starting point for Go solutions to the
-["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+This Project started out as the Codecrafters challenge
+[Build your own HTTP server](https://app.codecrafters.io/courses/http-server)
 
-[HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) is the
-protocol that powers the web. In this challenge, you'll build a HTTP/1.1 server
-that is capable of serving multiple clients.
+I turned it into a small module, that can be used to create a simple HTTP server to handle GET and POST requests.
 
-Along the way you'll learn about TCP servers,
-[HTTP request syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html),
-and more.
+## Useful to know
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+When passing a path to a handler function, all routes, starting with that given path, will be handled:
 
-# Passing the first stage
+- `server.Get("/",...` will handle `"/"`, but also `"/hello"`
 
-The entry point for your HTTP server implementation is in `app/server.go`. Study
-and uncomment the relevant code, and push your changes to pass the first stage:
+Additionally, the order of setting up your handler functions matters.
+If you handle `"/hello"` first, and `"/"` afterwards, the second routehandler could potentially overwrite the response from your first route.
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
+## Examples
+
+**You can find an example server file in `app/example.go`**
+
+- Create new server:
+
+```
+server := http.NewServer()
 ```
 
-Time to move on to the next stage!
+- Handle a route for all Methods:
 
-# Stage 2 & beyond
+```
+server.Handle("/", func(req *http.Request) http.Response {
+    if req.Method == http.Get || req.path == "/hello-world" {
+        return http.NewBodyResponse("Hello, World!")
+    } else {
+        return http.NewResponse(http.NotFound)
+    }
+})
+```
 
-Note: This section is for stages 2 and beyond.
+- Handle a GET Route:
 
-1. Ensure you have `go (1.19)` installed locally
-1. Run `./your_server.sh` to run your program, which is implemented in
-   `app/server.go`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+```
+server.Get("/", func(req *http.Request) http.Response {
+    return http.NewBodyResponse("Hello world!")
+})
+```
+
+- Handle a POST Route:
+
+```
+server.Post("/", func(req *http.Request) http.Response {
+    return http.NewBodyResponse("Hello world!")
+})
+```
+
+- After setting up all your routes, you can listen for connections:
+
+```
+server.Listen(func() {
+		fmt.Println("Server listening on port", uint16(PORT))
+	}, uint16(PORT))
+```
