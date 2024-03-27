@@ -1,21 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"mini-http/http"
 	"os"
 	"strings"
+
+	"github.com/MarioNaise/mini-http/http"
 )
 
 var (
 	DIRNAME string
-	PORT    uint
+	ADDR    string
 )
 
 func init() {
 	flag.StringVar(&DIRNAME, "directory", "", "")
-	flag.UintVar(&PORT, "port", 4221, "")
+	flag.StringVar(&ADDR, "addr", ":4221", "")
 	flag.Parse()
 }
 
@@ -29,30 +31,37 @@ func main() {
 	})
 
 	server.Listen(func() {
-		fmt.Println("Server listening on port", uint16(PORT))
-	}, uint16(PORT))
+		fmt.Println("Server listening on", ADDR)
+	}, ADDR)
 }
 
 func handleRoute(req *http.Request) http.Response {
-	res := http.NewResponse(http.NotFound)
+	res := func(resp http.Response) http.Response {
+		if req.Method != http.Get {
+			return http.NewResponse(http.MethodNotAllowed)
+		}
+		return resp
+	}
 	if req.Path == "/" {
-		res = http.NewResponse(http.Ok)
+		return res(http.NewResponse(http.Ok))
 	}
 	for k, v := range req.Headers {
 		if strings.ToLower(k) == strings.TrimPrefix(req.Path, "/") {
-			res = http.NewBodyResponse(v)
+			return res(http.NewBodyResponse(v))
 		}
 	}
-	return res
+
+	return http.NewResponse(http.NotFound)
 }
 
 func handleFiles(req *http.Request) http.Response {
+	// santitizing inputs would be a good idea here
 	reqFileName := strings.TrimPrefix(req.Path, "/files/")
 	if DIRNAME != "" {
 		DIRNAME += "/"
 	}
 
-	if req.Method == "GET" {
+	if req.Method == http.Get {
 		file, err := os.ReadFile(DIRNAME + reqFileName)
 		if err != nil {
 			fmt.Println("Error reading file:", err.Error())
@@ -63,14 +72,9 @@ func handleFiles(req *http.Request) http.Response {
 		return res
 	}
 
-	if req.Method == "POST" {
+	if req.Method == http.Post {
 		content := []byte(req.Body)
-		for i := range content {
-			if content[i] == 0 {
-				content = content[:i]
-				break
-			}
-		}
+		content = content[:bytes.IndexByte(content, 0)]
 		err := os.WriteFile(DIRNAME+reqFileName, content, 0644)
 		if err != nil {
 			fmt.Println("Error writing file:", err.Error())

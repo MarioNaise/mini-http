@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func NewResponse(s Status) Response {
+func NewResponse(s string) Response {
 	return Response{Status: s, Headers: Headers{}, Body: ""}
 }
 
@@ -14,7 +14,7 @@ func NewBodyResponse(body string) Response {
 	return res
 }
 
-func (res *Response) SetStatus(status Status) {
+func (res *Response) SetStatus(status string) {
 	res.Status = status
 }
 
@@ -29,5 +29,5 @@ func (res *Response) SetBody(body string) {
 }
 
 func (res *Response) ToString() string {
-	return fmt.Sprintf("%s %s", Version, string(res.Status)+res.Headers.ToString()+res.Body)
+	return fmt.Sprintf("%s %s", Version, res.Status+res.Headers.ToString()+res.Body)
 }

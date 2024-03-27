@@ -1,9 +1,7 @@
 package http
 
 type (
-	Buffer []byte
-
-	Status string
+	buffer []byte
 
 	Headers map[string]string
 
@@ -15,20 +13,19 @@ type (
 	}
 
 	Response struct {
-		Status  Status
+		Status  string
 		Headers Headers
 		Body    string
 	}
 
-	callback func(req *Request) Response
-	handler  struct {
-		callback callback
+	callbackFuncHandler func(req *Request) Response
+	handler             struct {
+		callback callbackFuncHandler
 		path     string
 	}
 	routeMap map[string][]handler
 	Server   struct {
 		routes routeMap
-		Host   string
-		Port   uint16
+		Addr   string
 	}
 )

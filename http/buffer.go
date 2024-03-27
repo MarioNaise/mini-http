@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (buf Buffer) ToRequest() (Request, error) {
+func (buf buffer) ToRequest() (Request, error) {
 	reqSlice := strings.Split(string(buf), CRLF+CRLF)
 	if len(reqSlice) < 2 || len(strings.Fields(reqSlice[0])) < 3 {
 		return Request{}, errors.New("invalid request")

@@ -56,6 +56,6 @@ server.Post("/", func(req *http.Request) http.Response {
 
 ```
 server.Listen(func() {
-		fmt.Println("Server listening on port", uint16(PORT))
-	}, uint16(PORT))
+    fmt.Println("Server listening on", ":4221")
+	}, ":4221")
 ```
