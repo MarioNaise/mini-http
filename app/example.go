@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -74,7 +73,6 @@ func handleFiles(req *http.Request) http.Response {
 
 	if req.Method == http.Post {
 		content := []byte(req.Body)
-		content = content[:bytes.IndexByte(content, 0)]
 		err := os.WriteFile(DIRNAME+reqFileName, content, 0644)
 		if err != nil {
 			fmt.Println("Error writing file:", err.Error())

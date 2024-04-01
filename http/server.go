@@ -34,11 +34,12 @@ func (server *Server) Listen(callback func(), addr string) {
 func handleConnection(conn net.Conn, routes *routeMap) {
 	defer closeConnection(&conn)
 	var buf buffer = make([]byte, 1024)
-	_, err := conn.Read(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		log.Println("Error reading from connection: ", err.Error())
 		return
 	}
+	buf = buf[:n]
 	req, err := buf.ToRequest()
 	if err != nil {
 		log.Println("Error parsing request: ", err.Error())
